@@ -6,17 +6,25 @@ Vue.use(VueRouter);
 const routes = [
   {
     path: "/",
-    redirect: "login"
-  },
-  {
-    path: "/login",
-    name: "Login",
-    component: () => import("../views/login/index")
+    redirect: "/main"
   },
   {
     path: "/main",
     name: "Main",
+    meta: { title: "首页" },
     component: () => import("../views/main/index")
+  },
+  {
+    path: "/login",
+    name: "Login",
+    meta: { title: "login" },
+    component: () => import("../views/login/index")
+  },
+  {
+    path: "/register",
+    name: "Register",
+    meta: { title: "register" },
+    component: () => import("../views/register/index")
   }
 ];
 
