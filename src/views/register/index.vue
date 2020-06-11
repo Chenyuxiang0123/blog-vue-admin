@@ -36,10 +36,14 @@
           maxlength="6"
           placeholder="请输入验证码"
         />
-        <el-button @click="getCode()">获取验证码</el-button>
+        <el-button @click="getCode()" :disabled="disabled">{{
+          message
+        }}</el-button>
       </el-form-item>
       <el-form-item class="registerBtn">
-        <el-button type="primary" @click="submitForm()">注册</el-button>
+        <el-button type="primary" @click="submitForm('ruleForm')"
+          >注册</el-button
+        >
       </el-form-item>
     </el-form>
     <div class="tips">
@@ -50,28 +54,52 @@
 </template>
 
 <script>
+import { register, code } from "../../api/user";
 export default {
   data() {
-    let validateEmail = (rule, value, callback) => {
+    let validateEmail = (rules, value, callback) => {
+      let obj = JSON.parse(localStorage.getItem(value));
       if (value == "") {
         callback(new Error("请输入邮箱"));
+      } else if (obj && value === obj.email) {
+        let oldTime = new Date(obj.time);
+        let newTime = new Date();
+        this.message = "验证码已发送";
+        this.disabled = true;
+        if (newTime - oldTime > 900000) {
+          localStorage.removeItem(value);
+          this.message = "获取验证码";
+          this.disabled = false;
+        }
+        callback();
+      } else if (obj && value !== obj.email) {
+        this.message = "获取验证码";
+        this.disabled = false;
+      } else {
+        callback();
       }
     };
-    let validatePassword = (rule, value, callback) => {
+    let validatePassword = (rules, value, callback) => {
       if (value == "") {
         callback(new Error("请输入密码"));
+      } else {
+        callback();
       }
     };
-    let validateCode = (rule, value, callback) => {
+    let validateCode = (rules, value, callback) => {
       if (value == "") {
         callback(new Error("请输入验证码"));
+      } else {
+        callback();
       }
     };
-    let validateCheckPassword = (rule, value, callback) => {
+    let validateCheckPassword = (rules, value, callback) => {
       if (value === "") {
         callback(new Error("请再次输入密码"));
       } else if (value !== this.ruleForm.password) {
         callback(new Error("两次输入的密码不一致"));
+      } else {
+        callback();
       }
     };
     return {
@@ -81,6 +109,8 @@ export default {
         code: "",
         checkPassword: ""
       },
+      message: "获取验证码",
+      disabled: false,
       rules: {
         email: [
           { validator: validateEmail, trigger: "blur" },
@@ -117,11 +147,50 @@ export default {
     };
   },
   methods: {
-    submitForm() {
-      console.log(this.ruleForm);
+    submitForm(formName) {
+      this.$refs[formName].validate(async valid => {
+        if (valid) {
+          let res = await register(this.ruleForm);
+          this.$message({
+            type: res.type,
+            message: res.message
+          });
+          if (res.code === 0) {
+            this.$router.push("/login");
+          }
+        } else {
+          return false;
+        }
+      });
     },
-    getCode() {
-      console.log(this.ruleForm.code);
+    async getCode() {
+      if (this.ruleForm.email === "") {
+        this.$message({
+          type: "error",
+          message: "邮箱不能为空！！"
+        });
+        return;
+      }
+      let res = await code({ email: this.ruleForm.email });
+      let timeId = null;
+      if (res.code === 0) {
+        clearInterval(timeId);
+        this.message = "验证码已发送";
+        this.disabled = true;
+        let obj = {
+          email: this.ruleForm.email,
+          time: new Date()
+        };
+        localStorage.setItem(this.ruleForm.email, JSON.stringify(obj));
+        timeId = setInterval(() => {
+          this.$set(this.message, "获取验证码");
+          this.$set(this.disabled, false);
+        }, 1000 * 60 * 15);
+      }
+      this.$message({
+        type: res.type,
+        message: res.message
+      });
     }
   }
 };

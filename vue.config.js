@@ -76,7 +76,26 @@ module.exports = {
   },
 
   // 所有 webpack-dev-server 的选项都支持
-  devServer: {},
+  devServer: {
+    proxy: {
+      "/admin": {
+        target: "http://localhost:5000/api/admin", //目标服务器
+        changeOrigin: true, //是否改变请求源
+        pathRewrite: {
+          //路径重写
+          "^/admin": ""
+        }
+      },
+      "/web": {
+        target: "https://www.server.cyxwblog.com/api/web", //目标服务器
+        changeOrigin: true, //是否改变请求源
+        pathRewrite: {
+          //路径重写
+          "^/web": ""
+        }
+      }
+    }
+  },
 
   // 是否为 Babel 或 TypeScript 使用 thread-loader
   parallel: require("os").cpus().length > 1,
